@@ -95,7 +95,9 @@ def parse_address_google(address, api_key):
 # Streamlit UI replacement for Tkinter
 st.set_page_config(
     page_title="Professional Address Parser",
-    page_icon="favicon.ico",  # Relative path to the favicon file
+    page_icon="favicon.ico",
+    layout="centered",
+    initial_sidebar_state="collapsed" 
 )
 st.title("Professional Address Parser")
 address_input = st.text_input("Enter Address")
