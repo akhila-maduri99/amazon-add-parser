@@ -4,8 +4,8 @@ import threading
 import logging
 import re
 import os
-import openai
 import json
+from openai import OpenAI
 
 # Setup logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -13,7 +13,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 # Load API key securely
 API_KEY = os.getenv("GOOGLE_API_KEY")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-openai.api_key = OPENAI_API_KEY
+client = OpenAI(api_key=OPENAI_API_KEY)
 
 # US State code to full name mapping
 US_STATE_NAMES = {
@@ -76,7 +76,7 @@ Return only this JSON:
 }}
     """
     try:
-        response = openai.ChatCompletion.create(
+        response = client.chat.completions.create(
             model="gpt-4",
             messages=[
                 {"role": "system", "content": "You are a professional trained on Amazon Address Validation SOP."},
