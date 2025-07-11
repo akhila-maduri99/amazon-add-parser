@@ -3,14 +3,17 @@ import streamlit as st
 import threading
 import logging
 import re
+import os
+import openai
+import json
 
 # Setup logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-# Replace with your API Key
-import os
+# Load API key securely
 API_KEY = os.getenv("GOOGLE_API_KEY")
-
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+openai.api_key = OPENAI_API_KEY
 
 # US State code to full name mapping
 US_STATE_NAMES = {
@@ -38,6 +41,53 @@ def extract_po_box(address):
         return match_alt.group(1)
     return ""
 
+def classify_address_type(address, place_name, description):
+    prompt = f"""
+You are an Amazon Address Validation specialist. Classify the address type according to the following official SOP:
+
+### Address Type Categories:
+- Residential (SRU, MRU, Gated Community, IOFH, Vacant Land)
+- Commercial (offices, clinics, banks, stores, police stations)
+- FQA (schools, colleges, universities, prisons, military, power plants)
+- FFS (courier, logistics, USPS/UPS)
+- Mixed (residential + commercial)
+- PO Box
+- Incomplete
+
+### SOP Rules:
+- A home-based business (IOFH) is still Residential
+- If both business and residence exist → Mixed
+- If it's a university/school/govt. institution (military, jail, thermal plant) → FQA
+- Courier/shipping/logistics → FFS
+- Gated communities and apartments → Residential
+- No details found + open land = Vacant = Residential
+- PO Box in address → PO Box
+- Missing major components like city/state/zip = Incomplete
+
+### Input:
+Address: {address}
+Place Name: {place_name}
+Description: {description}
+
+Return only this JSON:
+{{
+  "type": "<Address Type>",
+  "reason": "<Justification based on SOP and data>"
+}}
+    """
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-4",
+            messages=[
+                {"role": "system", "content": "You are a professional trained on Amazon Address Validation SOP."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.2
+        )
+        return response.choices[0].message.content.strip()
+    except Exception as e:
+        return f"Error during AI classification: {e}"
+
 def parse_address_google(address, api_key):
     po_box_number = extract_po_box(address)
     url = "https://maps.googleapis.com/maps/api/geocode/json"
@@ -50,6 +100,8 @@ def parse_address_google(address, api_key):
             return {"Error": f"Google API error: {data['status']}"}
 
         components = data["results"][0]["address_components"]
+        place_name = data["results"][0].get("formatted_address", "")
+        description = data["results"][0].get("types", [])
 
         result = {
             "PO Box Number": po_box_number,
@@ -61,7 +113,9 @@ def parse_address_google(address, api_key):
             "State": "",
             "State Full Form": "",
             "Zip Code": "",
-            "Country": ""
+            "Country": "",
+            "Address Type": "",
+            "Classification Reason": ""
         }
 
         for comp in components:
@@ -86,19 +140,23 @@ def parse_address_google(address, api_key):
             elif "country" in types:
                 result["Country"] = comp["long_name"]
 
+        ai_response = classify_address_type(address, place_name, ", ".join(description))
+        if ai_response.startswith("{"):
+            parsed = json.loads(ai_response)
+            result["Address Type"] = parsed.get("type", "")
+            result["Classification Reason"] = parsed.get("reason", "")
+        else:
+            result["Address Type"] = "LLM Error"
+            result["Classification Reason"] = ai_response
+
         return result
 
     except Exception as e:
         logging.exception("Exception occurred while parsing address")
         return {"Error": str(e)}
 
-# Streamlit UI replacement for Tkinter
-st.set_page_config(
-    page_title="Professional Address Parser",
-    page_icon="favicon.ico",
-    layout="centered",
-    initial_sidebar_state="collapsed" 
-)
+# Streamlit UI
+st.set_page_config(page_title="Professional Address Parser", page_icon="favicon.ico")
 st.title("Professional Address Parser")
 address_input = st.text_input("Enter Address")
 if st.button("Go"):
@@ -112,4 +170,4 @@ if st.button("Go"):
             else:
                 for key, value in result.items():
                     if value:
-                        st.text(f"{key:<18}: {value}")
+                        st.text(f"{key:<22}: {value}")
