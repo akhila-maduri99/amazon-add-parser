@@ -1,0 +1,118 @@
+A. Residential: 
+Residential properties are homes or apartments. These might be single-family houses, 
+townhouses, gated communities, Apartments, Condominiums, Hostels outside the University, 
+Senior Assisted living Facilities (Old Age Homes). 
+
+• Residential 
+• Single Residential Unit  
+• Multi Residential Unit / Apartment complexes/ Condominium Complex 
+• Gated Communities / Town Houses  
+
+1. SRU (Single Residential Unit):  
+
+A Single Residential Unit is a standalone building / individual house where only a single family 
+lives. Its visual appearance is that of a villa or duplex houses.  
+Ex: refer the image on the right. 
+
+• Individual house (Single Residential Unit) 
+• Residential (SRU) 
+• Business running in SRU 
+
+Individual Operating from Home (IOFH)? 
+
+An Individual Operating from home best defines about a commercial running from a home. 
+When we search for an address in Google Maps, the knowledge panel shows us the address / 
+building name along with type of building it is. Sometimes, we reach to address which looks like 
+a residential property but has commercials within them. They cannot be defined as public 
+service commercial, but instead the search engine suggests a particular profession / 
+occupation of the person who has updated their details in GMaps. Let us look at an example: 
+5448 Kenwill Dr, Nanaimo, BC V9T 5M5, Canada. (street view of the address) 
+Examples of IOFH: Consultant, designer, electrician, translator, advisor, writer, pet groomer, 
+photographer, web designer, book keeper, plumber, accounting and auditing clerk, Editorial 
+services, Personal trainer, Interior Decorator, Event planner, painter, contractors, music bands.  
+All the above-mentioned examples and relevant scenarios should be considered as 
+RESIDENTIAL only.  
+
+** If the property looks like a residential but has commercial name and a sign board, try to have 
+a verbal confirmation. Update as commercial  
+Action to be taken: After identifying the property as Single Residential Unit, we mark the 
+address type as Residential and close the exception. 
+ 
+2. Multi Residential Unit: 
+
+Multi Residential Unit (MRU) is a property of multiple residential units located in the same 
+building. In the MRU also, we can sometimes identify few IOFH and we can still consider them 
+as ‘Residential’. We need to search for a POC for the apartment and make a call and try to 
+validate just like other address. If the Address is successfully validated we need to update all 
+the details in both building and unit level. But if the call does not go through; update only unit 
+level.  
+Action to be taken: After identifying the property as Multi Residential Unit, we mark the address 
+type as Residential and close the exception. If the call goes through also update BH and other 
+applicable attributes. 
+
+3. Gated Community (with SRU or MRU): 
+
+A gated community is a form of residential community or housing estate containing strictly 
+controlled entrances. A gated community can contain many Single Residential Units or many 
+Multi Residential Units in the same compound. We might identify few IOFH and we can still 
+consider them as ‘Residential’. Gated Communities have a similar pattern of roofs for 
+identification. Refer the images for better understanding.   
+Action to be taken: After identifying the property as a Gated Community, we mark the address 
+type as Residential and close the exception. If the call goes through also update BH and other 
+applicable attributes.
+ 
+4. Vacant Property:  
+
+Whenever we see the address is a vacant or empty land on all three maps (bing, google maps, 
+geo data editor) we need to update address type as residential. No other attribute to be 
+updated. Use Vacant property comments in GROK.  
+
+B. Commercial: 
+ 
+A type property that has business hours and provides a service to the public. This can include 
+office space, hotels and resorts, strip malls, restaurants, and healthcare facilities. 
+**. A property with a single commercial within a single unit is known as single / individual 
+commercial whereas, 
+a property with two or more businesses within a single unit is known as multi commercial.  
+Action to be taken: After identifying the property as commercial, try to gather the details 
+through verbal confirmation and web- scraping. Update the attributes in GAM. Address type has 
+to be marked as ‘Commercial’. 
+ 
+C. FQA Only Address:  
+
+Any address that belongs to the below mentioned characterized address should be considered 
+as FQA only address and they should not be called even if we find any POC to contact. No 
+business hours also should be updated.  
+1. Federal Buildings-central Government Office. 
+2. Universities  
+3. Colleges  
+4. Prison/ Jails  
+5. Thermal plants  
+6. Military / Airforce / Navy 
+7. Schools (Primary, Elementary, Middle and High schools)  catholic school , pre schools  
+For above properties comes under FQA , for these we are not updating anything in GAM 
+,only FQA GROK comment needs to be updated . 
+
+D. FFS( freight forward services:) 
+
+Properties like , usps, ups (united state postal services), courier services, logistic servicess 
+,shipping servicess frieght forwading servicess /agencies.  
+We need to make a call and do the validation normally by giving the comment as FFS. 
+Note: Any property outside the university is marked as commercial/res.  
+Courts, Banks and police stations, city government offices, state government offices, tax 
+collectors, tax services also can be called commercial they do not come under FQA.  
+Atm, cash points ,amazon lockers ,charging station, money transfer services this business 
+we are not considering as business. 
+
+E. Mixed:  
+
+A property that combines commercial, residential and sometimes even industrial units. (EX: 
+property with a shop on the ground floor and apartments in the upper parts.) 
+Commercial + Residential = Mixed  
+Action to be taken: After identifying the property as Mixed,for these we are not updating 
+anything in GAM ,only MIXED  GROK comment needs to be updated . 
+Follow the source link to identify the Mixed property: (copy and paste the hyperlink in browser) 
+Ex 1:  4806 47 Ave, Leduc, AB T9E 5X7, Canada – this property contains multiple residential and 
+commercial units. Hence considered as Mixed. 
+Ex 2: 786 St Clair Ave W, Toronto, ON M6C 1B6, Canada – this property has a commercial at the 
+ground level and residential on level 1. Hence considered as Mixed.  
