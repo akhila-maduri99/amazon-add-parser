@@ -32,6 +32,11 @@ US_STATE_NAMES = {
     "WI": "Wisconsin", "WY": "Wyoming", "DC": "District of Columbia"
 }
 
+# Load SOP content
+SOP_FILE_PATH = "/mnt/data/Address-type-SOP.txt"
+with open(SOP_FILE_PATH, "r", encoding="utf-8") as f:
+    FULL_SOP_TEXT = f.read()
+
 def extract_po_box(address):
     match = re.search(r'\bP(?:\.?\s*)?O(?:\.?\s*)?BOX\s*(\d+)', address, re.IGNORECASE)
     if match:
@@ -43,36 +48,22 @@ def extract_po_box(address):
 
 def classify_address_type(address, place_name, description):
     prompt = f"""
-You are an Amazon Address Validation specialist. Classify the address type according to the following official SOP:
+You are an Amazon Address Validation specialist. Follow the below official SOP carefully to classify the address type.
 
-### Address Type Categories:
-- Residential (SRU, MRU, Gated Community, IOFH, Vacant Land)
-- Commercial (offices, clinics, banks, stores, police stations)
-- FQA (schools, colleges, universities, prisons, military, power plants)
-- FFS (courier, logistics, USPS/UPS)
-- Mixed (residential + commercial)
-- PO Box
-- Incomplete
+=== SOP START ===
+{FULL_SOP_TEXT}
+=== SOP END ===
 
-### SOP Rules:
-- A home-based business (IOFH) is still Residential
-- If both business and residence exist → Mixed
-- If it's a university/school/govt. institution (military, jail, thermal plant) → FQA
-- Courier/shipping/logistics → FFS
-- Gated communities and apartments → Residential
-- No details found + open land = Vacant = Residential
-- PO Box in address → PO Box
-- Missing major components like city/state/zip = Incomplete
+Now based on the SOP, classify the address:
 
-### Input:
 Address: {address}
 Place Name: {place_name}
-Description: {description}
+Map Tags: {description}
 
 Return only this JSON:
 {{
-  "type": "<Address Type>",
-  "reason": "<Justification based on SOP and data>"
+  "type": "<Residential | Commercial | FQA | FFS | Mixed | PO Box | Incomplete>",
+  "reason": "<Explain using the SOP criteria>"
 }}
     """
     try:
