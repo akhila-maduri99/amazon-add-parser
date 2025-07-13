@@ -6,8 +6,8 @@ import openai
 import os
 
 # === CONFIGURATION ===
-API_KEY = "YOUR_GOOGLE_API_KEY"
-OPENAI_API_KEY = "YOUR_OPENAI_API_KEY"
+API_KEY = "GOOGLE_API_KEY"
+OPENAI_API_KEY = "OPENAI_API_KEY"
 SOP_FILE_PATH = "Address-type-SOP.txt"
 
 openai.api_key = OPENAI_API_KEY
