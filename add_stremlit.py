@@ -1,21 +1,17 @@
-import requests
 import streamlit as st
-import threading
+import requests
 import logging
 import re
+import openai
 import os
-import json
-from openai import OpenAI
 
-# Setup logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+# === CONFIGURATION ===
+API_KEY = "YOUR_GOOGLE_API_KEY"
+OPENAI_API_KEY = "YOUR_OPENAI_API_KEY"
+SOP_FILE_PATH = "Address-type-SOP.txt"
 
-# Load API key securely
-API_KEY = os.getenv("GOOGLE_API_KEY")
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-client = OpenAI(api_key=OPENAI_API_KEY)
+openai.api_key = OPENAI_API_KEY
 
-# US State code to full name mapping
 US_STATE_NAMES = {
     "AL": "Alabama", "AK": "Alaska", "AZ": "Arizona", "AR": "Arkansas",
     "CA": "California", "CO": "Colorado", "CT": "Connecticut", "DE": "Delaware",
@@ -32,10 +28,8 @@ US_STATE_NAMES = {
     "WI": "Wisconsin", "WY": "Wyoming", "DC": "District of Columbia"
 }
 
-# Load SOP content
-SOP_FILE_PATH = "/mnt/data/Address-type-SOP.txt"
-with open(SOP_FILE_PATH, "r", encoding="utf-8") as f:
-    FULL_SOP_TEXT = f.read()
+# === LOGGING ===
+logging.basicConfig(level=logging.INFO)
 
 def extract_po_box(address):
     match = re.search(r'\bP(?:\.?\s*)?O(?:\.?\s*)?BOX\s*(\d+)', address, re.IGNORECASE)
@@ -46,39 +40,6 @@ def extract_po_box(address):
         return match_alt.group(1)
     return ""
 
-def classify_address_type(address, place_name, description):
-    prompt = f"""
-You are an Amazon Address Validation specialist. Follow the below official SOP carefully to classify the address type.
-
-=== SOP START ===
-{FULL_SOP_TEXT}
-=== SOP END ===
-
-Now based on the SOP, classify the address:
-
-Address: {address}
-Place Name: {place_name}
-Map Tags: {description}
-
-Return only this JSON:
-{{
-  "type": "<Residential | Commercial | FQA | FFS | Mixed | PO Box | Incomplete>",
-  "reason": "<Explain using the SOP criteria>"
-}}
-    """
-    try:
-        response = client.chat.completions.create(
-            model="gpt-4",
-            messages=[
-                {"role": "system", "content": "You are a professional trained on Amazon Address Validation SOP."},
-                {"role": "user", "content": prompt}
-            ],
-            temperature=0.2
-        )
-        return response.choices[0].message.content.strip()
-    except Exception as e:
-        return f"Error during AI classification: {e}"
-
 def parse_address_google(address, api_key):
     po_box_number = extract_po_box(address)
     url = "https://maps.googleapis.com/maps/api/geocode/json"
@@ -87,26 +48,20 @@ def parse_address_google(address, api_key):
         response = requests.get(url, params=params)
         data = response.json()
         if data["status"] != "OK":
-            logging.error(f"Google API returned error: {data['status']}")
             return {"Error": f"Google API error: {data['status']}"}
 
         components = data["results"][0]["address_components"]
-        place_name = data["results"][0].get("formatted_address", "")
-        description = data["results"][0].get("types", [])
 
         result = {
             "PO Box Number": po_box_number,
             "Building Number": "",
             "Unit/Suite/Apt": "",
             "Street Name": "",
-            "Neighborhood": "",
             "City": "",
             "State": "",
             "State Full Form": "",
             "Zip Code": "",
-            "Country": "",
-            "Address Type": "",
-            "Classification Reason": ""
+            "Country": ""
         }
 
         for comp in components:
@@ -117,48 +72,87 @@ def parse_address_google(address, api_key):
                 result["Street Name"] = comp["long_name"]
             elif "subpremise" in types:
                 result["Unit/Suite/Apt"] = comp["long_name"]
-            elif "neighborhood" in types:
-                result["Neighborhood"] = comp["long_name"]
-            elif "locality" in types:
+            elif "neighborhood" in types and not result["City"]:
+                result["City"] = comp["long_name"]
+            elif "locality" in types and not result["City"]:
                 result["City"] = comp["long_name"]
             elif "administrative_area_level_1" in types:
-                state_short = comp["short_name"]
-                full_name = US_STATE_NAMES.get(state_short, state_short)
-                result["State"] = state_short
-                result["State Full Form"] = full_name
+                result["State"] = comp["short_name"]
+                result["State Full Form"] = US_STATE_NAMES.get(comp["short_name"], comp["short_name"])
             elif "postal_code" in types:
                 result["Zip Code"] = comp["long_name"]
             elif "country" in types:
                 result["Country"] = comp["long_name"]
 
-        ai_response = classify_address_type(address, place_name, ", ".join(description))
-        if ai_response.startswith("{"):
-            parsed = json.loads(ai_response)
-            result["Address Type"] = parsed.get("type", "")
-            result["Classification Reason"] = parsed.get("reason", "")
-        else:
-            result["Address Type"] = "LLM Error"
-            result["Classification Reason"] = ai_response
-
         return result
-
     except Exception as e:
         logging.exception("Exception occurred while parsing address")
         return {"Error": str(e)}
 
-# Streamlit UI
-st.set_page_config(page_title="Professional Address Parser", page_icon="favicon.ico")
+def classify_address_type_llm(address_data, sop_text):
+    prompt = f"""
+You are a professional address type classifier working at Amazon. Using the SOP guidelines below, classify the address into one of the following types:
+- Residential
+- Commercial
+- Mixed
+- FQA
+- FFS
+- Vacant
+
+SOP:
+{sop_text}
+
+Now classify the following address:
+{address_data}
+
+Return:
+Address Type: <One of the above>
+Reason: <Concise reason based on SOP>
+"""
+    try:
+        completion = openai.ChatCompletion.create(
+            model="gpt-4",
+            messages=[{"role": "user", "content": prompt}]
+        )
+        reply = completion.choices[0].message.content
+        if "Address Type:" in reply:
+            address_type = reply.split("Address Type:")[1].split("Reason:")[0].strip()
+            reason = reply.split("Reason:")[-1].strip()
+            return address_type, reason
+        else:
+            return "LLM Error", reply
+    except Exception as e:
+        return "LLM Error", str(e)
+
+# === STREAMLIT UI ===
+st.set_page_config(page_title="Professional Address Parser", layout="wide")
 st.title("Professional Address Parser")
+
 address_input = st.text_input("Enter Address")
-if st.button("Go"):
-    if not address_input:
-        st.warning("Please enter an address.")
-    else:
-        with st.spinner("Parsing..."):
-            result = parse_address_google(address_input, API_KEY)
-            if "Error" in result:
-                st.error(result["Error"])
-            else:
-                for key, value in result.items():
-                    if value:
-                        st.text(f"{key:<22}: {value}")
+if st.button("Go") and address_input:
+    # Parse address components
+    data = parse_address_google(address_input, API_KEY)
+
+    # Load SOP and AI classify
+    if "Error" not in data:
+        with open(SOP_FILE_PATH, "r", encoding="utf-8") as f:
+            sop_text = f.read()
+        address_type, reason = classify_address_type_llm(data, sop_text)
+        data["Address Type"] = address_type
+        data["Classification Reason"] = reason
+
+    # Show results
+    for key, val in data.items():
+        if val:
+            st.markdown(f"**{key}** : {val}")
+
+    # Embed Google Map (right side)
+    col1, col2 = st.columns([2, 3])
+    with col2:
+        if address_input:
+            map_url = f"https://www.google.com/maps?q={address_input.replace(' ', '+')}&output=embed"
+            st.components.v1.iframe(map_url, height=400)
+
+        # Embed Google search below map
+        search_url = f"https://www.google.com/search?q={address_input.replace(' ', '+')}"
+        st.components.v1.iframe(search_url, height=600)
